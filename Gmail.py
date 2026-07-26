@@ -13,7 +13,7 @@ if importlib.util.find_spec("flask") is None or importlib.util.find_spec("telebo
 
 from flask import Flask
 import telebot
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 
 # ============================================
 # --- WEB SERVER FOR RENDER (KEEP ALIVE) ---
@@ -163,31 +163,54 @@ def get_force_join_markup(left_channels):
     return markup
 
 # ============================================
-# --- KEYBOARDS (ENGLISH & BANGLA) ---
+# --- COLORFUL MAIN MENU (ENGLISH & BANGLA) ---
 # ============================================
 def get_main_menu(user_id):
     data = load_db()
     user = get_user(user_id)
     lang = user.get("lang", "bn")
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup = InlineKeyboardMarkup(row_width=2)
 
     if lang == "en":
-        markup.add(KeyboardButton("💰 𝑩𝒂𝒍𝒂𝒏𝒄𝒆"), KeyboardButton("👥 𝑩𝒆𝒇𝒆𝒓𝒓𝒂𝒍"))
-        markup.add(KeyboardButton("📧 𝑵𝒆𝒘 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"), KeyboardButton("👴 𝑶𝒍𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"))
-        markup.add(KeyboardButton("♻️ 𝑼𝒔𝒆𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"), KeyboardButton("📥 𝑾𝒊𝒕𝒉𝒅𝒓𝒂𝒘"))
-        markup.add(KeyboardButton("🏆 𝑳𝒆𝒂𝒅𝒆𝒓𝒃𝒐𝒂𝒓𝒅"))
+        markup.add(
+            InlineKeyboardButton("💰 Balance", callback_data="btn_balance", style="primary"),
+            InlineKeyboardButton("👥 Referral", callback_data="btn_referral", style="primary")
+        )
+        markup.add(
+            InlineKeyboardButton("📧 New Gmail Sale", callback_data="btn_new_gmail", style="primary"),
+            InlineKeyboardButton("👴 Old Gmail Sale", callback_data="btn_old_gmail", style="primary")
+        )
+        markup.add(
+            InlineKeyboardButton("♻️ Used Gmail Sale", callback_data="btn_used_gmail", style="primary"),
+            InlineKeyboardButton("📥 Withdraw", callback_data="btn_withdraw", style="primary")
+        )
+        markup.add(
+            InlineKeyboardButton("🏆 Leaderboard", callback_data="btn_leaderboard", style="primary")
+        )
     else:
-        markup.add(KeyboardButton("💰 মোট ব্যালেন্স"), KeyboardButton("👥 রেফার"))
-        markup.add(KeyboardButton("📧 নতুন জিমেইল সেল"), KeyboardButton("👴 পুরাতন জিমেইল সেল"))
-        markup.add(KeyboardButton("♻️ ইউজ জিমেইল সেল"), KeyboardButton("📥 উইথড্র করুন"))
-        markup.add(KeyboardButton("🏆 লিডারবোর্ড"))
+        markup.add(
+            InlineKeyboardButton("💰 মোট ব্যালেন্স", callback_data="btn_balance", style="primary"),
+            InlineKeyboardButton("👥 রেফার", callback_data="btn_referral", style="primary")
+        )
+        markup.add(
+            InlineKeyboardButton("📧 নতুন জিমেইল সেল", callback_data="btn_new_gmail", style="primary"),
+            InlineKeyboardButton("👴 পুরাতন জিমেইল সেল", callback_data="btn_old_gmail", style="primary")
+        )
+        markup.add(
+            InlineKeyboardButton("♻️ ইউজ জিমেইল সেল", callback_data="btn_used_gmail", style="primary"),
+            InlineKeyboardButton("📥 উইথড্র করুন", callback_data="btn_withdraw", style="primary")
+        )
+        markup.add(
+            InlineKeyboardButton("🏆 লিডারবোর্ড", callback_data="btn_leaderboard", style="primary")
+        )
 
     # কাস্টম বাটন যোগ করা
     for cb in data.get("custom_buttons", []):
-        markup.add(KeyboardButton(cb))
+        markup.add(InlineKeyboardButton(f"🔘 {cb}", callback_data=f"cbtn_{cb}", style="primary"))
 
+    # এডমিন প্যানেল বাটন (লাল কালার)
     if int(user_id) == ADMIN_ID:
-        markup.add(KeyboardButton("⚙️ Admin Panel"))
+        markup.add(InlineKeyboardButton("⚙️ Admin Panel", callback_data="btn_admin_panel", style="danger"))
 
     return markup
 
@@ -369,6 +392,110 @@ def callback_handler(call):
             welcome_txt = "✅ <b>ভাষা সফলভাবে সেট করা হয়েছে! মেইন মেনুতে স্বাগতম।</b>"
             
         bot.send_message(call.message.chat.id, welcome_txt, parse_mode="HTML", reply_markup=get_main_menu(user_id))
+
+    # ==================== MAIN MENU COLORFUL BUTTON ACTION HANDLERS ====================
+    elif call.data == "btn_balance":
+        user = get_user(user_id)
+        msg = (f"👤 <b>Account Details Dashboard</b>\n\n"
+               f"💰 মোট ব্যালেন্স: <b>৳{user['balance']:.2f}</b>\n"
+               f"🎁 মোট রেফার বোনাস: <b>৳{user['total_ref_bonus']:.2f}</b>\n"
+               f"📤 মোট উইথড্র: <b>৳{user['total_withdraw']:.2f}</b>\n"
+               f"⏳ পেন্ডিং উইথড্র: <b>৳{user['pending_withdraw']:.2f}</b>\n\n"
+               f"✅ সাকসেস মেইল: <b>{user['success_mails']} টি</b>\n"
+               f"⏳ পেন্ডিং মেইল: <b>{user['pending_mails']} টি</b>")
+        bot.send_message(call.message.chat.id, msg, parse_mode="HTML")
+
+    elif call.data == "btn_referral":
+        user = get_user(user_id)
+        bot_uname = bot.get_me().username
+        ref_link = f"https://t.me/{bot_uname}?start={user_id}"
+        
+        msg = (f"👥 <b>Refer & Earn Program</b>\n\n"
+               f"🔗 <b>আপনার রেফারেল লিংক:</b>\n<code>{ref_link}</code>\n\n"
+               f"📜 <b>রেফারেল রুলস:</b>\n"
+               f"১. আপনার লিংক থেকে জয়েন করে ভেরিফাই করলে পাবেন <b>৳{data.get('ref_bonus_verify', 0.40)}</b>!\n"
+               f"২. আপনার রেফার করা ব্যক্তি <b>৩ টি জিমেইল সেল</b> দিলে সে আপনার Active Refer সদস্য হবে!\n\n"
+               f"📊 <b>মোট রেফার করা সদস্য:</b> {len(user['referral_list'])} জন")
+        
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("📋 আপনার রেফারেল লিস্ট দেখুন", callback_data="show_ref_list", style="primary"))
+        bot.send_message(call.message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
+
+    elif call.data == "show_ref_list":
+        user = get_user(user_id)
+        refs = user.get("referral_list", [])
+        if not refs:
+            bot.send_message(call.message.chat.id, "❌ আপনি এখনো কাউকে রেফার করেননি।")
+        else:
+            msg = "📋 <b>আপনার রেফারেল তালিকা:</b>\n\n"
+            for idx, r in enumerate(refs, 1):
+                status = "🟢 Active" if r.get("active") else "🔴 Unactive"
+                msg += f"{idx}. {r['name']} (@{r['username']}) - Status: {status}\n"
+            bot.send_message(call.message.chat.id, msg, parse_mode="HTML")
+
+    elif call.data == "btn_new_gmail":
+        fn, ln, email = generate_gmail_details()
+        passw = data.get("new_mail_password", "NRGmailShopPass@2026")
+        
+        uid = str(user_id)
+        data["users"][uid]["active_new_mail_session"] = {
+            "first_name": fn,
+            "last_name": ln,
+            "email": email,
+            "password": passw,
+            "start_time": time.time()
+        }
+        save_db(data)
+
+        msg = (f"📧 <b>নতুন জিমেইল তৈরির তথ্য:</b>\n\n"
+               f"👤 First Name: <code>{fn}</code>\n"
+               f"👤 Last Name: <code>{ln}</code>\n"
+               f"✉️ Gmail Address: <code>{email}</code>\n"
+               f"🔑 Password: <code>{passw}</code>\n"
+               f"💰 Rate: <b>৳{data.get('new_mail_price', 10.0)}</b>\n\n"
+               f"ℹ️ <i>লেখাগুলোর ওপর ক্লিক করে কপি করুন। অ্যাকাউন্ট সম্পূর্ণ তৈরি করা শেষ হলে নিচের Subject বাটনে চাপ দিন।</i>")
+        
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("✅ Subject / জিমেইল খোলা শেষ", callback_data="submit_new_mail_check", style="success"))
+        bot.send_message(call.message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
+
+    elif call.data == "btn_old_gmail":
+        update_user(user_id, "state", "enter_old_mail_address")
+        update_user(user_id, "temp_data", {"type": "old"})
+        bot.send_message(call.message.chat.id, "👴 <b>আপনার পুরাতন জিমেইল এড্রেসটি এখানে সাবমিট করুন 👇</b>", parse_mode="HTML")
+
+    elif call.data == "btn_used_gmail":
+        update_user(user_id, "state", "enter_old_mail_address")
+        update_user(user_id, "temp_data", {"type": "used"})
+        bot.send_message(call.message.chat.id, "♻️ <b>আপনার ইউজড (Used) জিমেইল এড্রেসটি এখানে সাবমিট করুন 👇</b>", parse_mode="HTML")
+
+    elif call.data == "btn_withdraw":
+        min_w = data.get("min_withdraw", 50.0)
+        msg = f"📥 <b>উইথড্র সিস্টেম</b>\n\nবর্তমান মিনিমাম উইথড্র: <b>৳{min_w:.2f}</b>\nনিচে থেকে আপনার পেমেন্ট মেথড সিলেক্ট করুন:"
+        
+        markup = InlineKeyboardMarkup(row_width=2)
+        btns = []
+        for m, enabled in data.get("withdraw_methods", {}).items():
+            if enabled: btns.append(InlineKeyboardButton(m, callback_data=f"with_select_{m}", style="primary"))
+        markup.add(*btns)
+        bot.send_message(call.message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
+
+    elif call.data == "btn_leaderboard":
+        msg = "🏆 <b>24 Hours Top Leaderboard Rewards</b> 🏆\n\n"
+        msg += "🥇 টপ ১০ জনের জন্য বিশেষ পুরস্কার বোনাস:\n"
+        msg += "• ১০টির বেশি সেল/রেফার: <b>৳৫০ বোনাস</b>\n"
+        msg += "• ৭ - ১০ নম্বর পজিশন: <b>৳২০ বোনাস</b>\n"
+        msg += "• ৪ - ৭ নম্বর পজিশন: <b>৳১০ বোনাস</b>\n"
+        msg += "• ২ - ৪ নম্বর পজিশন: <b>৳২ বোনাস</b>\n\n"
+        msg += "📊 <i>প্রতি ২৪ ঘন্টা পর অটোমেটিক বোনাস প্রদান ও রিসেট করা হয়।</i>"
+        bot.send_message(call.message.chat.id, msg, parse_mode="HTML")
+
+    elif call.data == "btn_admin_panel" and int(user_id) == ADMIN_ID:
+        bot.send_message(call.message.chat.id, "⚙️ <b>Admin Control Panel:</b>", parse_mode="HTML", reply_markup=get_admin_inline_menu())
+
+    elif call.data.startswith("cbtn_"):
+        btn_txt = call.data.replace("cbtn_", "")
+        bot.send_message(call.message.chat.id, f"🔘 **{btn_txt}**", parse_mode="Markdown")
 
     elif call.data == "submit_new_mail_check":
         user = get_user(user_id)
@@ -890,107 +1017,8 @@ def handle_text_messages(message):
             update_user(user_id, "state", None)
             return
 
-    # ==================== MAIN MENU BUTTON COMMANDS ====================
-    if text in ["💰 মোট ব্যালেন্স", "💰 𝑩𝒂𝒍𝒂𝒏𝒄𝒆"]:
-        msg = (f"👤 <b>Account Details Dashboard</b>\n\n"
-               f"💰 মোট ব্যালেন্স: <b>৳{user['balance']:.2f}</b>\n"
-               f"🎁 মোট রেফার বোনাস: <b>৳{user['total_ref_bonus']:.2f}</b>\n"
-               f"📤 মোট উইথড্র: <b>৳{user['total_withdraw']:.2f}</b>\n"
-               f"⏳ পেন্ডিং উইথড্র: <b>৳{user['pending_withdraw']:.2f}</b>\n\n"
-               f"✅ সাকসেস মেইল: <b>{user['success_mails']} টি</b>\n"
-               f"⏳ পেন্ডিং মেইল: <b>{user['pending_mails']} টি</b>")
-        bot.send_message(message.chat.id, msg, parse_mode="HTML")
-
-    elif text in ["👥 রেফার", "👥 𝑩𝒆𝒇𝒆𝒓𝒓𝒂𝒍"]:
-        bot_uname = bot.get_me().username
-        ref_link = f"https://t.me/{bot_uname}?start={user_id}"
-        
-        msg = (f"👥 <b>Refer & Earn Program</b>\n\n"
-               f"🔗 <b>আপনার রেফারেল লিংক:</b>\n<code>{ref_link}</code>\n\n"
-               f"📜 <b>রেফারেল রুলস:</b>\n"
-               f"১. আপনার লিংক থেকে জয়েন করে ভেরিফাই করলে পাবেন <b>৳{data.get('ref_bonus_verify', 0.40)}</b>!\n"
-               f"২. আপনার রেফার করা ব্যক্তি <b>৩ টি জিমেইল সেল</b> দিলে সে আপনার Active Refer সদস্য হবে!\n\n"
-               f"📊 <b>মোট রেফার করা সদস্য:</b> {len(user['referral_list'])} জন")
-        
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("📋 আপনার রেফারেল লিস্ট দেখুন", callback_data="show_ref_list", style="primary"))
-        bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
-
-    elif text == "show_ref_list" or (message.text == "📋 আপনার রেফারেল লিস্ট দেখুন"):
-        refs = user.get("referral_list", [])
-        if not refs:
-            bot.send_message(message.chat.id, "❌ আপনি এখনো কাউকে রেফার করেননি।")
-        else:
-            msg = "📋 <b>আপনার রেফারেল তালিকা:</b>\n\n"
-            for idx, r in enumerate(refs, 1):
-                status = "🟢 Active" if r.get("active") else "🔴 Unactive"
-                msg += f"{idx}. {r['name']} (@{r['username']}) - Status: {status}\n"
-            bot.send_message(message.chat.id, msg, parse_mode="HTML")
-
-    elif text in ["📧 নতুন জিমেইল সেল", "📧 𝑵𝒆𝒘 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"]:
-        fn, ln, email = generate_gmail_details()
-        passw = data.get("new_mail_password", "NRGmailShopPass@2026")
-        
-        uid = str(user_id)
-        data["users"][uid]["active_new_mail_session"] = {
-            "first_name": fn,
-            "last_name": ln,
-            "email": email,
-            "password": passw,
-            "start_time": time.time()
-        }
-        save_db(data)
-
-        msg = (f"📧 <b>নতুন জিমেইল তৈরির তথ্য:</b>\n\n"
-               f"👤 First Name: <code>{fn}</code>\n"
-               f"👤 Last Name: <code>{ln}</code>\n"
-               f"✉️ Gmail Address: <code>{email}</code>\n"
-               f"🔑 Password: <code>{passw}</code>\n"
-               f"💰 Rate: <b>৳{data.get('new_mail_price', 10.0)}</b>\n\n"
-               f"ℹ️ <i>লেখাগুলোর ওপর ক্লিক করে কপি করুন। অ্যাকাউন্ট সম্পূর্ণ তৈরি করা শেষ হলে নিচের Subject বাটনে চাপ দিন।</i>")
-        
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("✅ Subject / জিমেইল খোলা শেষ", callback_data="submit_new_mail_check", style="success"))
-        bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
-
-    elif text in ["👴 পুরাতন জিমেইল সেল", "👴 𝑶𝒍𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"]:
-        update_user(user_id, "state", "enter_old_mail_address")
-        update_user(user_id, "temp_data", {"type": "old"})
-        bot.send_message(message.chat.id, "👴 <b>আপনার পুরাতন জিমেইল এড্রেসটি এখানে সাবমিট করুন 👇</b>", parse_mode="HTML")
-
-    elif text in ["♻️ ইউজ জিমেইল সেল", "♻️ 𝑼𝒔𝒆𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"]:
-        update_user(user_id, "state", "enter_old_mail_address")
-        update_user(user_id, "temp_data", {"type": "used"})
-        bot.send_message(message.chat.id, "♻️ <b>আপনার ইউজড (Used) জিমেইল এড্রেসটি এখানে সাবমিট করুন 👇</b>", parse_mode="HTML")
-
-    elif text in ["📥 উইথড্র করুন", "📥 𝑾𝒊𝒕𝒉𝒅𝒓𝒂𝒘"]:
-        min_w = data.get("min_withdraw", 50.0)
-        msg = f"📥 <b>উইথড্র সিস্টেম</b>\n\nবর্তমান মিনিমাম উইথড্র: <b>৳{min_w:.2f}</b>\nনিচে থেকে আপনার পেমেন্ট মেথড সিলেক্ট করুন:"
-        
-        markup = InlineKeyboardMarkup(row_width=2)
-        btns = []
-        for m, enabled in data.get("withdraw_methods", {}).items():
-            if enabled: btns.append(InlineKeyboardButton(m, callback_data=f"with_select_{m}", style="primary"))
-        markup.add(*btns)
-        bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
-
-    elif text in ["🏆 লিডারবোর্ড", "🏆 𝑳𝒆𝒂𝒅𝒆𝒓𝒃𝒐𝒂𝒓𝒅"]:
-        msg = "🏆 <b>24 Hours Top Leaderboard Rewards</b> 🏆\n\n"
-        msg += "🥇 টপ ১০ জনের জন্য বিশেষ পুরস্কার বোনাস:\n"
-        msg += "• ১০টির বেশি সেল/রেফার: <b>৳৫০ বোনাস</b>\n"
-        msg += "• ৭ - ১০ নম্বর পজিশন: <b>৳২০ বোনাস</b>\n"
-        msg += "• ৪ - ৭ নম্বর পজিশন: <b>৳১০ বোনাস</b>\n"
-        msg += "• ২ - ৪ নম্বর পজিশন: <b>৳২ বোনাস</b>\n\n"
-        msg += "📊 <i>প্রতি ২৪ ঘন্টা পর অটোমেটিক বোনাস প্রদান ও রিসেট করা হয়।</i>"
-        bot.send_message(message.chat.id, msg, parse_mode="HTML")
-
-    # ==================== ADMIN PANEL COMMANDS ====================
-    elif text == "⚙️ Admin Panel" and int(user_id) == ADMIN_ID:
-        bot.send_message(message.chat.id, "⚙️ <b>Admin Control Panel:</b>", parse_mode="HTML", reply_markup=get_admin_inline_menu())
-
-    elif text == "🔙 Main Menu":
-        update_user(user_id, "state", None)
-        bot.send_message(message.chat.id, "Main Menu", reply_markup=get_main_menu(user_id))
+    # ==================== DEFAULT / FALLBACK HANDLER ====================
+    bot.send_message(message.chat.id, "নিচের মেনু থেকে একটি অপশন বেছে নিন:", reply_markup=get_main_menu(user_id))
 
 # ============================================
 # --- BOT STARTUP ---
