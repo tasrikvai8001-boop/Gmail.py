@@ -36,7 +36,7 @@ def keep_alive():
 # ============================================
 # --- CONFIGURATION ---
 # ============================================
-BOT_TOKEN = "8879290215:AAG1Kf6t9Y-wyk68rhF-Cv56COfXsMbPcvo"  # আপনার বট টোকেন
+BOT_TOKEN = "8534754260:AAHu6WnDSM0r_u1RdTEDxRSIRmo0EEb5h4c"  # আপনার বট টোকেন
 ADMIN_ID = 7833766898          # আপনার টেলিগ্রাম ID
 BOT_NAME = "📧 𝒩𝑅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒉𝒐𝒑 𝑩𝑫𝑻 📩"
 DATA_FILE = "nr_gmail_shop_data.json"
@@ -172,22 +172,22 @@ def get_main_menu(user_id):
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 
     if lang == "en":
-        markup.add(KeyboardButton("💰 𝑩𝒂𝒍𝒂𝒏𝒄𝒆", style="primary"), KeyboardButton("👥 𝑩𝒆𝒇𝒆𝒓𝒓𝒂𝒍", style="primary"))
-        markup.add(KeyboardButton("📧 𝑵𝒆𝒘 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆", style="success"), KeyboardButton("👴 𝑶𝒍𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆", style="success"))
-        markup.add(KeyboardButton("♻️ 𝑼𝒔𝒆𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆", style="warning"), KeyboardButton("📥 𝑾𝒊𝒕𝒉𝒅𝒓𝒂𝒘", style="danger"))
-        markup.add(KeyboardButton("🏆 𝑳𝒆𝒂𝒅𝒆𝒓𝒃𝒐𝒂𝒓𝒅", style="secondary"))
+        markup.add(KeyboardButton("💰 𝑩𝒂𝒍𝒂𝒏𝒄𝒆"), KeyboardButton("👥 𝑩𝒆𝒇𝒆𝒓𝒓𝒂𝒍"))
+        markup.add(KeyboardButton("📧 𝑵𝒆𝒘 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"), KeyboardButton("👴 𝑶𝒍𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"))
+        markup.add(KeyboardButton("♻️ 𝑼𝒔𝒆𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"), KeyboardButton("📥 𝑾𝒊𝒕𝒉𝒅𝒓𝒂𝒘"))
+        markup.add(KeyboardButton("🏆 𝑳𝒆𝒂𝒅𝒆𝒓𝒃𝒐𝒂𝒓𝒅"))
     else:
-        markup.add(KeyboardButton("💰 মোট ব্যালেন্স", style="primary"), KeyboardButton("👥 রেফার", style="primary"))
-        markup.add(KeyboardButton("📧 নতুন জিমেইল সেল", style="success"), KeyboardButton("👴 পুরাতন জিমেইল সেল", style="success"))
-        markup.add(KeyboardButton("♻️ ইউজ জিমেইল সেল", style="warning"), KeyboardButton("📥 উইথড্র করুন", style="danger"))
-        markup.add(KeyboardButton("🏆 লিডারবোর্ড", style="secondary"))
+        markup.add(KeyboardButton("💰 মোট ব্যালেন্স"), KeyboardButton("👥 রেফার"))
+        markup.add(KeyboardButton("📧 নতুন জিমেইল সেল"), KeyboardButton("👴 পুরাতন জিমেইল সেল"))
+        markup.add(KeyboardButton("♻️ ইউজ জিমেইল সেল"), KeyboardButton("📥 উইথড্র করুন"))
+        markup.add(KeyboardButton("🏆 লিডারবোর্ড"))
 
     # কাস্টম বাটন যোগ করা
     for cb in data.get("custom_buttons", []):
-        markup.add(KeyboardButton(cb, style="primary"))
+        markup.add(KeyboardButton(cb))
 
     if int(user_id) == ADMIN_ID:
-        markup.add(KeyboardButton("⚙️ Admin Panel", style="danger"))
+        markup.add(KeyboardButton("⚙️ Admin Panel"))
 
     return markup
 
@@ -357,9 +357,18 @@ def callback_handler(call):
         lang = call.data.replace("setlang_", "")
         update_user(user_id, "lang", lang)
         bot.answer_callback_query(call.id, "Language Saved!")
-        try: bot.delete_message(call.message.chat.id, call.message.message_id)
-        except: pass
-        bot.send_message(call.message.chat.id, "✅ <b>Language set successfully!</b>", parse_mode="HTML", reply_markup=get_main_menu(user_id))
+        try: 
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except: 
+            pass
+        
+        # ভাষা অনুযায়ী সফলতার মেসেজ ও মেইন মেনু কিবোর্ড পাঠানো
+        if lang == "en":
+            welcome_txt = "✅ <b>Language set successfully! Welcome to Main Menu.</b>"
+        else:
+            welcome_txt = "✅ <b>ভাষা সফলভাবে সেট করা হয়েছে! মেইন মেনুতে স্বাগতম।</b>"
+            
+        bot.send_message(call.message.chat.id, welcome_txt, parse_mode="HTML", reply_markup=get_main_menu(user_id))
 
     elif call.data == "submit_new_mail_check":
         user = get_user(user_id)
