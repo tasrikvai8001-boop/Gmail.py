@@ -36,7 +36,7 @@ def keep_alive():
 # ============================================
 # --- CONFIGURATION ---
 # ============================================
-BOT_TOKEN = "8534754260:AAHu6WnDSM0r_u1RdTEDxRSIRmo0EEb5h4c"  # আপনার বট টোকেন
+BOT_TOKEN = "8879290215:AAFYA2TYq_y92oTn28ISTC_oB4XJGuJV0-Y"  # আপনার বট টোকেন
 ADMIN_ID = 7833766898          # আপনার টেলিগ্রাম ID
 BOT_NAME = "📧 𝒩𝑅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒉𝒐𝒑 𝑩𝑫𝑻 📩"
 DATA_FILE = "nr_gmail_shop_data.json"
