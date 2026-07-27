@@ -16,7 +16,7 @@ import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
 # ============================================
-# --- STYLE PATCH FOR TELEBOT BUTTONS ---
+# --- STYLE PATCH FOR INLINE BUTTONS ONLY ---
 # ============================================
 _old_inline_dict = InlineKeyboardButton.to_dict
 def _new_inline_dict(self):
@@ -24,13 +24,6 @@ def _new_inline_dict(self):
     if hasattr(self, 'style'): d['style'] = self.style
     return d
 InlineKeyboardButton.to_dict = _new_inline_dict
-
-_old_kb_dict = KeyboardButton.to_dict
-def _new_kb_dict(self):
-    d = _old_kb_dict(self)
-    if hasattr(self, 'style'): d['style'] = self.style
-    return d
-KeyboardButton.to_dict = _new_kb_dict
 
 def ibtn(text, callback_data=None, url=None, style=None):
     kwargs = {'text': text}
@@ -40,10 +33,8 @@ def ibtn(text, callback_data=None, url=None, style=None):
     if style: b.style = style
     return b
 
-def rbtn(text, style=None):
-    b = KeyboardButton(text=text)
-    if style: b.style = style
-    return b
+def rbtn(text):
+    return KeyboardButton(text=text)
 
 # ============================================
 # --- WEB SERVER FOR RENDER (KEEP ALIVE) ---
@@ -138,7 +129,7 @@ def get_user(user_id, name="User", username=""):
             "pending_withdraw": 0.0,
             "success_mails": 0,
             "pending_mails": 0,
-            "lang": None,  # 'bn' or 'en'
+            "lang": None,
             "referred_by": None,
             "ref_rewarded": False,
             "referral_list": [],
@@ -202,37 +193,37 @@ def get_main_menu(user_id):
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 
     if lang == "en":
-        markup.add(rbtn("💰 𝑩𝒂𝒍𝒂𝒏𝒄𝒆", style="primary"), rbtn("👥 𝑩𝒆𝒇𝒆𝒓𝒓𝒂𝒍", style="primary"))
-        markup.add(rbtn("📧 𝑵𝒆𝒘 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆", style="primary"), rbtn("👴 𝑶𝒍𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆", style="primary"))
-        markup.add(rbtn("♻️ 𝑼𝒔𝒆𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆", style="primary"), rbtn("📥 𝑾𝒊𝒕𝒉𝒅𝒓𝒂𝒘", style="primary"))
-        markup.add(rbtn("🏆 𝑳𝒆𝒂𝒅𝒆𝒓𝒃𝒐𝒂𝒓𝒅", style="primary"))
+        markup.add(rbtn("💰 𝑩𝒂𝒍𝒂𝒏𝒄𝒆"), rbtn("👥 𝑩𝒆𝒇𝒆𝒓𝒓𝒂𝒍"))
+        markup.add(rbtn("📧 𝑵𝒆𝒘 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"), rbtn("👴 𝑶𝒍𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"))
+        markup.add(rbtn("♻️ 𝑼𝒔𝒆𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"), rbtn("📥 𝑾𝒊𝒕𝒉𝒅𝒓𝒂𝒘"))
+        markup.add(rbtn("🏆 𝑳𝒆𝒂𝒅𝒆𝒓𝒃𝒐𝒂𝒓𝒅"))
     else:
-        markup.add(rbtn("💰 মোট ব্যালেন্স", style="primary"), rbtn("👥 রেফার", style="primary"))
-        markup.add(rbtn("📧 নতুন জিমেইল সেল", style="primary"), rbtn("👴 পুরাতন জিমেইল সেল", style="primary"))
-        markup.add(rbtn("♻️ ইউজ জিমেইল সেল", style="primary"), rbtn("📥 উইথড্র করুন", style="primary"))
-        markup.add(rbtn("🏆 লিডারবোর্ড", style="primary"))
+        markup.add(rbtn("💰 মোট ব্যালেন্স"), rbtn("👥 রেফার"))
+        markup.add(rbtn("📧 নতুন জিমেইল সেল"), rbtn("👴 পুরাতন জিমেইল সেল"))
+        markup.add(rbtn("♻️ ইউজ জিমেইল সেল"), rbtn("📥 উইথড্র করুন"))
+        markup.add(rbtn("🏆 লিডারবোর্ড"))
 
     for cb in data.get("custom_buttons", []):
-        markup.add(rbtn(cb, style="primary"))
+        markup.add(rbtn(cb))
 
-    if str(user_id) == str(ADMIN_ID):
-        markup.add(rbtn("⚙️ Admin Panel", style="danger"))
+    if int(user_id) == int(ADMIN_ID):
+        markup.add(rbtn("⚙️ Admin Panel"))
 
     return markup
 
 def get_admin_keyboard_menu():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(rbtn("📢 Set Channel", style="primary"), rbtn("🎁 Set Ref Bonus", style="primary"))
-    markup.add(rbtn("💳 Set Min Withdraw", style="primary"), rbtn("📥 Pending New Mail", style="warning"))
-    markup.add(rbtn("📥 Pending Old Mail", style="warning"), rbtn("📥 Pending Use Mail", style="warning"))
-    markup.add(rbtn("💸 Pending Withdraw", style="danger"), rbtn("📢 Broadcast", style="primary"))
-    markup.add(rbtn("🔑 New Mail Pass Set", style="secondary"), rbtn("⛔ Ban User", style="danger"))
-    markup.add(rbtn("🟢 Unban User", style="success"), rbtn("➕ Add Mainmenu Button", style="success"))
-    markup.add(rbtn("🗑️ Delete Button", style="danger"), rbtn("➕ Add Balance", style="success"))
-    markup.add(rbtn("➖ Cut Balance", style="danger"), rbtn("📊 Bot Statistics", style="secondary"))
-    markup.add(rbtn("🏷️ Set Mail Prices", style="primary"), rbtn("🔎 User Search", style="secondary"))
-    markup.add(rbtn("🔴 Maintenance Mode", style="danger"), rbtn("📁 Export Data", style="primary"))
-    markup.add(rbtn("🔙 Back to User Menu", style="secondary"))
+    markup.add(rbtn("📢 Set Channel"), rbtn("🎁 Set Ref Bonus"))
+    markup.add(rbtn("💳 Set Min Withdraw"), rbtn("📥 Pending New Mail"))
+    markup.add(rbtn("📥 Pending Old Mail"), rbtn("📥 Pending Use Mail"))
+    markup.add(rbtn("💸 Pending Withdraw"), rbtn("📢 Broadcast"))
+    markup.add(rbtn("🔑 New Mail Pass Set"), rbtn("⛔ Ban User"))
+    markup.add(rbtn("🟢 Unban User"), rbtn("➕ Add Mainmenu Button"))
+    markup.add(rbtn("🗑️ Delete Button"), rbtn("➕ Add Balance"))
+    markup.add(rbtn("➖ Cut Balance"), rbtn("📊 Bot Statistics"))
+    markup.add(rbtn("🏷️ Set Mail Prices"), rbtn("🔎 User Search"))
+    markup.add(rbtn("🔴 Maintenance Mode"), rbtn("📁 Export Data"))
+    markup.add(rbtn("🔙 Back to User Menu"))
     return markup
 
 # ============================================
@@ -243,7 +234,7 @@ def start_cmd(message):
     user_id = message.from_user.id
     data = load_db()
 
-    if data.get("maintenance_mode") and str(user_id) != str(ADMIN_ID):
+    if data.get("maintenance_mode") and int(user_id) != int(ADMIN_ID):
         bot.send_message(message.chat.id, "🔴 <b>বট বর্তমানে মেইনটেন্যান্স মোডে আছে। কিছুক্ষণ পর আবার চেষ্টা করুন।</b>", parse_mode="HTML")
         return
 
@@ -412,7 +403,7 @@ def callback_handler(call):
 
         bot.send_message(call.message.chat.id, f"📲 <b>আপনার {method} নম্বর/এড্রেস দিন:</b>", parse_mode="HTML")
 
-    elif call.data.startswith("del_cbtn_") and str(user_id) == str(ADMIN_ID):
+    elif call.data.startswith("del_cbtn_") and int(user_id) == int(ADMIN_ID):
         btn_name = call.data.replace("del_cbtn_", "")
         if btn_name in data.get("custom_buttons", []):
             data["custom_buttons"].remove(btn_name)
@@ -422,7 +413,7 @@ def callback_handler(call):
             except: pass
 
     elif call.data.startswith("appr_") or call.data.startswith("rej_"):
-        if str(user_id) != str(ADMIN_ID): return
+        if int(user_id) != int(ADMIN_ID): return
         
         bot.answer_callback_query(call.id)
         action, mail_type, req_key = call.data.split("_", 2)
@@ -465,7 +456,7 @@ def callback_handler(call):
                 except: pass
 
     elif call.data.startswith("wappr_") or call.data.startswith("wrej_"):
-        if str(user_id) != str(ADMIN_ID): return
+        if int(user_id) != int(ADMIN_ID): return
         bot.answer_callback_query(call.id)
         action, w_key = call.data.split("_", 1)
         
@@ -507,7 +498,7 @@ def handle_text_messages(message):
         developer_cmd(message)
         return
 
-    if data.get("maintenance_mode") and str(user_id) != str(ADMIN_ID):
+    if data.get("maintenance_mode") and int(user_id) != int(ADMIN_ID):
         bot.send_message(message.chat.id, "🔴 <b>বট বর্তমানে মেইনটেন্যান্স মোডে আছে।</b>", parse_mode="HTML")
         return
 
@@ -522,9 +513,9 @@ def handle_text_messages(message):
 
     user = get_user(user_id, message.from_user.first_name, message.from_user.username or "")
 
-    # ==================== ADMIN KEYBOARD ACTIONS ====================
-    if str(user_id) == str(ADMIN_ID):
-        if text == "⚙️ Admin Panel":
+    # ==================== ADMIN PANEL DIRECT CHECK ====================
+    if int(user_id) == int(ADMIN_ID):
+        if "Admin Panel" in text or text == "⚙️ Admin Panel":
             update_user(user_id, "state", None)
             bot.send_message(message.chat.id, "⚙️ <b>Admin Control Panel Keyboard Active:</b>", parse_mode="HTML", reply_markup=get_admin_keyboard_menu())
             return
@@ -632,7 +623,7 @@ def handle_text_messages(message):
             bot.send_message(message.chat.id, f"📥 পেন্ডিং তালিকা থেকে রিভিউ করুন (লাইভ নোটিফিকেশন থেকে এপ্রুভ বা রিজেক্ট করুন)।")
             return
 
-    # ==================== MAIN MENU BUTTON COMMANDS (RESETS STATE) ====================
+    # ==================== MAIN MENU BUTTON COMMANDS ====================
     all_main_menu_btns = [
         "💰 মোট ব্যালেন্স", "💰 𝑩𝒂𝒍𝒂𝒏𝒄𝒆",
         "👥 রেফার", "👥 𝑩𝒆𝒇𝒆𝒓𝒓𝒂𝒍",
@@ -643,7 +634,6 @@ def handle_text_messages(message):
         "🏆 লিডারবোর্ড", "🏆 𝑳𝒆𝒂𝒅𝒆𝒓𝒃𝒐𝒂𝒓𝒅"
     ] + data.get("custom_buttons", [])
 
-    # ইউজার কোনো বাটনে চাপ দিলে অটোমেটিক তার আগের State মুছে যাবে
     if text in all_main_menu_btns:
         update_user(user_id, "state", None)
 
@@ -869,7 +859,7 @@ def handle_text_messages(message):
             return
 
     # ==================== ADMIN STATE FLOWS ====================
-    if str(user_id) == str(ADMIN_ID) and state:
+    if int(user_id) == int(ADMIN_ID) and state:
         if state == "admin_set_channel":
             if text.startswith("@"):
                 data["force_channels"].append(text)
