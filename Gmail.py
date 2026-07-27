@@ -15,11 +15,23 @@ from flask import Flask
 import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
-def ibtn(text, callback_data=None, url=None):
+# ============================================
+# --- STYLE PATCH FOR TELEBOT INLINE BUTTONS ---
+# ============================================
+_old_inline_dict = InlineKeyboardButton.to_dict
+def _new_inline_dict(self):
+    d = _old_inline_dict(self)
+    if hasattr(self, 'style'): d['style'] = self.style
+    return d
+InlineKeyboardButton.to_dict = _new_inline_dict
+
+def ibtn(text, callback_data=None, url=None, style=None):
     kwargs = {'text': text}
     if callback_data: kwargs['callback_data'] = callback_data
     if url: kwargs['url'] = url
-    return InlineKeyboardButton(**kwargs)
+    b = InlineKeyboardButton(**kwargs)
+    if style: b.style = style
+    return b
 
 def rbtn(text):
     return KeyboardButton(text=text)
@@ -167,8 +179,8 @@ def get_force_join_markup(left_channels):
     markup = InlineKeyboardMarkup(row_width=1)
     for ch in left_channels:
         clean_ch = ch.replace("@", "")
-        markup.add(ibtn(f"📢 Join {ch}", url=f"https://t.me/{clean_ch}"))
-    markup.add(ibtn("✅ Verify Now", callback_data="verify_join"))
+        markup.add(ibtn(f"📢 Join {ch}", url=f"https://t.me/{clean_ch}", style="primary"))
+    markup.add(ibtn("✅ Verify Now", callback_data="verify_join", style="success"))
     return markup
 
 # ============================================
@@ -248,8 +260,8 @@ def start_cmd(message):
     if not user.get("lang"):
         markup = InlineKeyboardMarkup(row_width=2)
         markup.add(
-            ibtn("English 🇬🇧", callback_data="setlang_en"),
-            ibtn("বাংলা 🇧🇩", callback_data="setlang_bn")
+            ibtn("English 🇬🇧", callback_data="setlang_en", style="primary"),
+            ibtn("বাংলা 🇧🇩", callback_data="setlang_bn", style="success")
         )
         bot.send_message(message.chat.id, "🌐 <b>মেসেজের ভাষা নির্ধারণ করুন / Select Bot Language:</b>", parse_mode="HTML", reply_markup=markup)
         return
@@ -263,12 +275,14 @@ def admin_cmd(message):
     if str(user_id) == str(ADMIN_ID):
         update_user(user_id, "state", None)
         bot.send_message(message.chat.id, "⚙️ <b>Admin Control Panel Keyboard Active:</b>", parse_mode="HTML", reply_markup=get_admin_keyboard_menu())
+    else:
+        bot.send_message(message.chat.id, "❌ আপনি অ্যাডমিন নন!")
 
 @bot.message_handler(commands=['developer'])
 def developer_cmd(message):
     msg = "<b>ডেলিভারি এবং কাস্টমাইজড বট ডেভেলপার:</b>\n\nএই রকম সেম বট কম টাকায় তৈরি করে নিতে চাইলে এনাকে মেসেজ করুন 👇"
     markup = InlineKeyboardMarkup()
-    markup.add(ibtn("👨‍💻 Contact Developer", url="https://t.me/devoloper54"))
+    markup.add(ibtn("👨‍💻 Contact Developer", url="https://t.me/devoloper54", style="success"))
     bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
 
 # ============================================
@@ -314,8 +328,8 @@ def callback_handler(call):
         if not user.get("lang"):
             markup = InlineKeyboardMarkup(row_width=2)
             markup.add(
-                ibtn("English 🇬🇧", callback_data="setlang_en"),
-                ibtn("বাংলা 🇧🇩", callback_data="setlang_bn")
+                ibtn("English 🇬🇧", callback_data="setlang_en", style="primary"),
+                ibtn("বাংলা 🇧🇩", callback_data="setlang_bn", style="success")
             )
             bot.send_message(call.message.chat.id, "🌐 <b>মেসেজের ভাষা নির্ধারণ করুন / Select Bot Language:</b>", parse_mode="HTML", reply_markup=markup)
         else:
@@ -377,8 +391,8 @@ def callback_handler(call):
 
             markup = InlineKeyboardMarkup(row_width=2)
             markup.add(
-                ibtn("✅ Approve", callback_data=f"appr_new_{req_key}"),
-                ibtn("❌ Reject", callback_data=f"rej_new_{req_key}")
+                ibtn("✅ Approve", callback_data=f"appr_new_{req_key}", style="success"),
+                ibtn("❌ Reject", callback_data=f"rej_new_{req_key}", style="danger")
             )
             bot.send_message(ADMIN_ID, f"📩 <b>New Gmail Submitted!</b>\nUser: <code>{user_id}</code>\nEmail: <code>{email}</code>\nPass: <code>{session['password']}</code>", parse_mode="HTML", reply_markup=markup)
 
@@ -493,6 +507,10 @@ def handle_text_messages(message):
         developer_cmd(message)
         return
 
+    if text.lower() == "/admin":
+        admin_cmd(message)
+        return
+
     if data.get("maintenance_mode") and str(user_id) != str(ADMIN_ID):
         bot.send_message(message.chat.id, "🔴 <b>বট বর্তমানে মেইনটেন্যান্স মোডে আছে।</b>", parse_mode="HTML")
         return
@@ -553,7 +571,7 @@ def handle_text_messages(message):
             else:
                 markup = InlineKeyboardMarkup(row_width=1)
                 for btn in custom_btns:
-                    markup.add(ibtn(f"🗑️ Delete: {btn}", callback_data=f"del_cbtn_{btn}"))
+                    markup.add(ibtn(f"🗑️ Delete: {btn}", callback_data=f"del_cbtn_{btn}", style="danger"))
                 bot.send_message(message.chat.id, "🗑️ <b>যে বাটনটি মুছে ফেলতে চান তাতে চাপ দিন:</b>", parse_mode="HTML", reply_markup=markup)
             return
 
@@ -661,7 +679,7 @@ def handle_text_messages(message):
                    f"📊 <b>মোট রেফার করা সদস্য:</b> {len(user['referral_list'])} জন")
             
             markup = InlineKeyboardMarkup()
-            markup.add(ibtn("📋 আপনার রেফারেল লিস্ট দেখুন", callback_data="show_ref_list"))
+            markup.add(ibtn("📋 আপনার রেফারেল লিস্ট দেখুন", callback_data="show_ref_list", style="primary"))
             bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
             return
 
@@ -688,7 +706,7 @@ def handle_text_messages(message):
                    f"ℹ️ <i>লেখাগুলোর ওপর ক্লিক করে কপি করুন। অ্যাকাউন্ট সম্পূর্ণ তৈরি করা শেষ হলে নিচের Subject বাটনে চাপ দিন।</i>")
             
             markup = InlineKeyboardMarkup()
-            markup.add(ibtn("✅ Subject / জিমেইল খোলা শেষ", callback_data="submit_new_mail_check"))
+            markup.add(ibtn("✅ Subject / জিমেইল খোলা শেষ", callback_data="submit_new_mail_check", style="success"))
             bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
             return
 
@@ -711,7 +729,7 @@ def handle_text_messages(message):
             markup = InlineKeyboardMarkup(row_width=2)
             btns = []
             for m, enabled in data.get("withdraw_methods", {}).items():
-                if enabled: btns.append(ibtn(m, callback_data=f"with_select_{m}"))
+                if enabled: btns.append(ibtn(m, callback_data=f"with_select_{m}", style="primary"))
             markup.add(*btns)
             bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
             return
@@ -793,8 +811,8 @@ def handle_text_messages(message):
         
         markup = InlineKeyboardMarkup(row_width=2)
         markup.add(
-            ibtn("✅ Approve", callback_data=f"appr_{m_type}_{req_key}"),
-            ibtn("❌ Reject", callback_data=f"rej_{m_type}_{req_key}")
+            ibtn("✅ Approve", callback_data=f"appr_{m_type}_{req_key}", style="success"),
+            ibtn("❌ Reject", callback_data=f"rej_{m_type}_{req_key}", style="danger")
         )
         bot.send_message(ADMIN_ID, f"📩 <b>New {m_type.upper()} Mail Submitted!</b>\nUser: <code>{user_id}</code>\nEmail: <code>{email}</code>\nPass: <code>{item_data['password']}</code>", parse_mode="HTML", reply_markup=markup)
         return
@@ -850,8 +868,8 @@ def handle_text_messages(message):
             
             markup = InlineKeyboardMarkup(row_width=2)
             markup.add(
-                ibtn("✅ Approve", callback_data=f"wappr_{w_key}"),
-                ibtn("❌ Reject", callback_data=f"wrej_{w_key}")
+                ibtn("✅ Approve", callback_data=f"wappr_{w_key}", style="success"),
+                ibtn("❌ Reject", callback_data=f"wrej_{w_key}", style="danger")
             )
             bot.send_message(ADMIN_ID, admin_msg, parse_mode="HTML", reply_markup=markup)
             return
