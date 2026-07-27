@@ -67,7 +67,7 @@ def keep_alive():
 # --- CONFIGURATION ---
 # ============================================
 BOT_TOKEN = "8879290215:AAFYA2TYq_y92oTn28ISTC_oB4XJGuJV0-Y"  # আপনার বট টোকেন
-ADMIN_ID = 7833766898          # আপনার টেলিগ্রাম ID
+ADMIN_ID = 7833766898          # আপনার টেলিগ্রাম ID (Integer)
 BOT_NAME = "📧 𝒩𝑅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒉𝒐𝒑 𝑩𝑫𝑻 📩"
 DATA_FILE = "nr_gmail_shop_data.json"
 
@@ -141,7 +141,7 @@ def get_user(user_id, name="User", username=""):
             "lang": None,  # 'bn' or 'en'
             "referred_by": None,
             "ref_rewarded": False,
-            "referral_list": [],  # list of dicts: {"id", "name", "username"}
+            "referral_list": [],
             "active_new_mail_session": None,
             "state": None,
             "temp_data": {}
@@ -212,11 +212,10 @@ def get_main_menu(user_id):
         markup.add(rbtn("♻️ ইউজ জিমেইল সেল", style="primary"), rbtn("📥 উইথড্র করুন", style="primary"))
         markup.add(rbtn("🏆 লিডারবোর্ড", style="primary"))
 
-    # কাস্টম বাটন যোগ করা
     for cb in data.get("custom_buttons", []):
         markup.add(rbtn(cb, style="primary"))
 
-    if int(user_id) == ADMIN_ID:
+    if str(user_id) == str(ADMIN_ID):
         markup.add(rbtn("⚙️ Admin Panel", style="danger"))
 
     return markup
@@ -229,42 +228,41 @@ def get_admin_inline_menu():
     )
     markup.add(
         ibtn("💳 Set Min Withdraw", callback_data="adm_set_min_withdraw", style="primary"),
-        ibtn("🔘 Manage Button", callback_data="adm_manage_btn", style="secondary")
+        ibtn("📥 Pending New Mail", callback_data="adm_p_new", style="warning")
     )
     markup.add(
-        ibtn("📥 Pending New Mail", callback_data="adm_p_new", style="warning"),
-        ibtn("📥 Pending Old Mail", callback_data="adm_p_old", style="warning")
+        ibtn("📥 Pending Old Mail", callback_data="adm_p_old", style="warning"),
+        ibtn("📥 Pending Use Mail", callback_data="adm_p_used", style="warning")
     )
     markup.add(
-        ibtn("📥 Pending Use Mail", callback_data="adm_p_used", style="warning"),
-        ibtn("💸 Pending Withdraw", callback_data="adm_p_with", style="danger")
+        ibtn("💸 Pending Withdraw", callback_data="adm_p_with", style="danger"),
+        ibtn("📢 Broadcast", callback_data="adm_broadcast", style="primary")
     )
     markup.add(
-        ibtn("📢 Broadcast", callback_data="adm_broadcast", style="primary"),
-        ibtn("🔑 New Mail Pass Set", callback_data="adm_set_pass", style="secondary")
+        ibtn("🔑 New Mail Pass Set", callback_data="adm_set_pass", style="secondary"),
+        ibtn("⛔ Ban User", callback_data="adm_ban", style="danger")
     )
     markup.add(
-        ibtn("⛔ Ban User", callback_data="adm_ban", style="danger"),
-        ibtn("🟢 Unban User", callback_data="adm_unban", style="success")
+        ibtn("🟢 Unban User", callback_data="adm_unban", style="success"),
+        ibtn("➕ Add Mainmenu Button", callback_data="adm_add_btn", style="success")
     )
     markup.add(
-        ibtn("➕ Add Mainmenu Button", callback_data="adm_add_btn", style="success"),
-        ibtn("🗑️ Delete Button", callback_data="adm_del_btn", style="danger")
+        ibtn("🗑️ Delete Button", callback_data="adm_del_btn", style="danger"),
+        ibtn("➕ Add Balance", callback_data="adm_add_bal", style="success")
     )
     markup.add(
-        ibtn("➕ Add Balance", callback_data="adm_add_bal", style="success"),
-        ibtn("➖ Cut Balance", callback_data="adm_cut_bal", style="danger")
+        ibtn("➖ Cut Balance", callback_data="adm_cut_bal", style="danger"),
+        ibtn("📊 Bot Statistics", callback_data="adm_stats", style="secondary")
     )
     markup.add(
-        ibtn("📊 Bot Statistics", callback_data="adm_stats", style="secondary"),
-        ibtn("🏷️ Set Mail Prices", callback_data="adm_set_prices", style="primary")
+        ibtn("🏷️ Set Mail Prices", callback_data="adm_set_prices", style="primary"),
+        ibtn("🔎 User Search", callback_data="adm_search", style="secondary")
     )
     markup.add(
-        ibtn("🔎 User Search & History", callback_data="adm_search", style="secondary"),
-        ibtn("🔴 Maintenance Mode", callback_data="adm_maint", style="danger")
+        ibtn("🔴 Maintenance Mode", callback_data="adm_maint", style="danger"),
+        ibtn("📁 Export Data", callback_data="adm_export", style="primary")
     )
     markup.add(
-        ibtn("📁 Export Data", callback_data="adm_export", style="primary"),
         ibtn("❌ Close Panel", callback_data="adm_close", style="danger")
     )
     return markup
@@ -277,7 +275,7 @@ def start_cmd(message):
     user_id = message.from_user.id
     data = load_db()
 
-    if data.get("maintenance_mode") and int(user_id) != ADMIN_ID:
+    if data.get("maintenance_mode") and str(user_id) != str(ADMIN_ID):
         bot.send_message(message.chat.id, "🔴 <b>বট বর্তমানে মেইনটেন্যান্স মোডে আছে। কিছুক্ষণ পর আবার চেষ্টা করুন।</b>", parse_mode="HTML")
         return
 
@@ -286,30 +284,26 @@ def start_cmd(message):
         return
 
     user = get_user(user_id, message.from_user.first_name, message.from_user.username or "")
+    update_user(user_id, "state", None)
 
-    # রেফারেল হ্যান্ডলিং
     args = message.text.split()
     if len(args) > 1 and user.get("referred_by") is None:
         ref_id = args[1]
         if ref_id != str(user_id) and ref_id in data["users"]:
             update_user(user_id, "referred_by", ref_id)
 
-    # ফোর্স জয়েন চেক
     left = check_force_join(user_id)
     if left:
         msg = f"👋 <b>Welcome to {BOT_NAME}!</b>\n\nবটটি ব্যবহার করতে নিচের চ্যানেলগুলোতে জয়েন করুন এবং <b>Verify Now</b> বাটনে ক্লিক করুন:"
         bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=get_force_join_markup(left))
         return
 
-    # ভাষা সিলেকশন না থাকলে ভাষা সিলেক্ট করতে বলা
     if not user.get("lang"):
         markup = InlineKeyboardMarkup(row_width=2)
         markup.add(
             ibtn("English 🇬🇧", callback_data="setlang_en", style="primary"),
             ibtn("বাংলা 🇧🇩", callback_data="setlang_bn", style="success")
         )
-        bot.send_message(message.chat.id, "অপেক্ষা করুন ভেরিফিকেশন চলছে……")
-        time.sleep(1)
         bot.send_message(message.chat.id, "🌐 <b>মেসেজের ভাষা নির্ধারণ করুন / Select Bot Language:</b>", parse_mode="HTML", reply_markup=markup)
         return
 
@@ -331,19 +325,109 @@ def callback_handler(call):
     user_id = call.from_user.id
     data = load_db()
 
-    if call.data == "verify_join":
+    # অ্যাডমিন একশন চেক (String Format Conversion Safe Check)
+    if call.data.startswith("adm_"):
+        if str(user_id) != str(ADMIN_ID):
+            bot.answer_callback_query(call.id, "❌ আপনার এই প্যানেল ব্যবহারের অনুমতি নেই!", show_alert=True)
+            return
+
+        act = call.data.replace("adm_", "")
+        bot.answer_callback_query(call.id)  # Stop Loading
+
+        if act == "close":
+            try: bot.delete_message(call.message.chat.id, call.message.message_id)
+            except: pass
+
+        elif act == "set_channel":
+            update_user(user_id, "state", "admin_set_channel")
+            bot.send_message(call.message.chat.id, "📢 চ্যানেল ইউজারনেম সেন্ড করুন (যেমন: `@mychannel`):")
+
+        elif act == "set_ref_bonus":
+            update_user(user_id, "state", "admin_set_ref_bonus")
+            bot.send_message(call.message.chat.id, "🎁 নতুন রেফার বোনাস অ্যামাউন্ট লিখুন:")
+
+        elif act == "set_min_withdraw":
+            update_user(user_id, "state", "admin_set_min_withdraw")
+            bot.send_message(call.message.chat.id, "💳 নতুন মিনিমাম উইথড্র অ্যামাউন্ট লিখুন:")
+
+        elif act == "set_pass":
+            update_user(user_id, "state", "admin_set_pass")
+            bot.send_message(call.message.chat.id, "🔑 নতুন জিমেইলের জন্য ফিক্সড পাসওয়ার্ড লিখুন:")
+
+        elif act == "add_btn":
+            update_user(user_id, "state", "admin_add_custom_btn")
+            bot.send_message(call.message.chat.id, "➕ নতুন বাটনের নাম লিখুন:")
+
+        elif act == "del_btn":
+            custom_btns = data.get("custom_buttons", [])
+            if not custom_btns:
+                bot.send_message(call.message.chat.id, "❌ কোনো ডিলিট করার মতো কাস্টম বাটন নেই!")
+            else:
+                markup = InlineKeyboardMarkup(row_width=1)
+                for btn in custom_btns:
+                    markup.add(ibtn(f"🗑️ Delete: {btn}", callback_data=f"del_cbtn_{btn}", style="danger"))
+                bot.send_message(call.message.chat.id, "🗑️ <b>যে বাটনটি মুছে ফেলতে চান তাতে চাপ দিন:</b>", parse_mode="HTML", reply_markup=markup)
+
+        elif act == "add_bal":
+            update_user(user_id, "state", "admin_add_bal")
+            bot.send_message(call.message.chat.id, "➕ লিখুন: `USER_ID AMOUNT`", parse_mode="Markdown")
+
+        elif act == "cut_bal":
+            update_user(user_id, "state", "admin_cut_bal")
+            bot.send_message(call.message.chat.id, "➖ লিখুন: `USER_ID AMOUNT`", parse_mode="Markdown")
+
+        elif act == "ban":
+            update_user(user_id, "state", "admin_ban_user")
+            bot.send_message(call.message.chat.id, "⛔ Ban করার জন্য USER_ID লিখুন:")
+
+        elif act == "unban":
+            update_user(user_id, "state", "admin_unban_user")
+            bot.send_message(call.message.chat.id, "🟢 Unban করার জন্য USER_ID লিখুন:")
+
+        elif act == "set_prices":
+            update_user(user_id, "state", "admin_set_prices")
+            bot.send_message(call.message.chat.id, "🏷️ লিখুন: `NEW_PRICE OLD_PRICE USED_PRICE`", parse_mode="Markdown")
+
+        elif act == "search":
+            update_user(user_id, "state", "admin_search_user")
+            bot.send_message(call.message.chat.id, "🔎 ইউজার তথ্য দেখতে USER_ID লিখুন:")
+
+        elif act == "broadcast":
+            update_user(user_id, "state", "admin_broadcast")
+            bot.send_message(call.message.chat.id, "📢 ব্রডকাস্ট মেসেজটি লিখুন:")
+
+        elif act == "maint":
+            data["maintenance_mode"] = not data["maintenance_mode"]
+            save_db(data)
+            st = "চালু (ON)" if data["maintenance_mode"] else "বন্ধ (OFF)"
+            bot.send_message(call.message.chat.id, f"🔴 মেইনটেন্যান্স মোড বর্তমানে: {st}")
+
+        elif act == "stats":
+            msg = (f"📊 <b>Bot Overall Statistics</b>\n\n"
+                   f"👥 Total Users: {len(data['users'])}\n"
+                   f"📩 Pending New Mails: {len(data['pending_new_mails'])}\n"
+                   f"👴 Pending Old Mails: {len(data['pending_old_mails'])}\n"
+                   f"♻️ Pending Used Mails: {len(data['pending_used_mails'])}\n"
+                   f"💸 Pending Withdraws: {len(data['pending_withdraws'])}\n"
+                   f"📧 Used Emails Saved in DB: {len(data['used_emails_database'])}")
+            bot.send_message(call.message.chat.id, msg, parse_mode="HTML")
+
+        elif act == "export":
+            with open(DATA_FILE, "rb") as f:
+                bot.send_document(call.message.chat.id, f)
+
+        elif act in ["p_new", "p_old", "p_used", "p_with"]:
+            bot.send_message(call.message.chat.id, f"📥 পেন্ডিং তালিকা থেকে রিভিউ করুন (লাইভ নোটিফিকেশন থেকে এপ্রুভ বা রিজেক্ট করুন)।")
+        return
+
+    elif call.data == "verify_join":
         left = check_force_join(user_id)
         if left:
             bot.answer_callback_query(call.id, "❌ আপনি এখনো সব চ্যানেলে জয়েন করেননি!", show_alert=True)
-            try:
-                bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=get_force_join_markup(left))
-            except:
-                pass
             return
 
         bot.answer_callback_query(call.id, "✅ ভেরিফিকেশন সফল হয়েছে!")
         
-        # রেফার ভেরিফাই বোনাস প্রসেসিং
         user = get_user(user_id)
         if user.get("referred_by") and not user.get("ref_rewarded"):
             ref_id = str(user["referred_by"])
@@ -352,7 +436,6 @@ def callback_handler(call):
                 data["users"][ref_id]["balance"] += ref_bonus
                 data["users"][ref_id]["total_ref_bonus"] += ref_bonus
                 
-                # রেফার তালিকায় যুক্ত করা
                 data["users"][ref_id]["referral_list"].append({
                     "id": user_id,
                     "name": call.from_user.first_name,
@@ -366,10 +449,8 @@ def callback_handler(call):
                 except:
                     pass
 
-        try:
-            bot.delete_message(call.message.chat.id, call.message.message_id)
-        except:
-            pass
+        try: bot.delete_message(call.message.chat.id, call.message.message_id)
+        except: pass
 
         if not user.get("lang"):
             markup = InlineKeyboardMarkup(row_width=2)
@@ -377,8 +458,6 @@ def callback_handler(call):
                 ibtn("English 🇬🇧", callback_data="setlang_en", style="primary"),
                 ibtn("বাংলা 🇧🇩", callback_data="setlang_bn", style="success")
             )
-            bot.send_message(call.message.chat.id, "অপেক্ষা করুন ভেরিফিকেশন চলছে……")
-            time.sleep(1)
             bot.send_message(call.message.chat.id, "🌐 <b>মেসেজের ভাষা নির্ধারণ করুন / Select Bot Language:</b>", parse_mode="HTML", reply_markup=markup)
         else:
             bot.send_message(call.message.chat.id, "✅ একাউন্ট ভেরিফাইড!", reply_markup=get_main_menu(user_id))
@@ -387,17 +466,10 @@ def callback_handler(call):
         lang = call.data.replace("setlang_", "")
         update_user(user_id, "lang", lang)
         bot.answer_callback_query(call.id, "Language Saved!")
-        try: 
-            bot.delete_message(call.message.chat.id, call.message.message_id)
-        except: 
-            pass
+        try: bot.delete_message(call.message.chat.id, call.message.message_id)
+        except: pass
         
-        # ভাষা অনুযায়ী সফলতার মেসেজ ও মেইন মেনু কিবোর্ড পাঠানো
-        if lang == "en":
-            welcome_txt = "✅ <b>Language set successfully! Welcome to Main Menu.</b>"
-        else:
-            welcome_txt = "✅ <b>ভাষা সফলভাবে সেট করা হয়েছে! মেইন মেনুতে স্বাগতম।</b>"
-            
+        welcome_txt = "✅ <b>Language set successfully!</b>" if lang == "en" else "✅ <b>ভাষা সফলভাবে সেট করা হয়েছে!</b>"
         bot.send_message(call.message.chat.id, welcome_txt, parse_mode="HTML", reply_markup=get_main_menu(user_id))
 
     elif call.data == "submit_new_mail_check":
@@ -408,8 +480,9 @@ def callback_handler(call):
             bot.answer_callback_query(call.id, "❌ আপনার কোনো সক্রিয় টাস্ক নেই!", show_alert=True)
             return
 
+        bot.answer_callback_query(call.id)
         msg = bot.send_message(call.message.chat.id, "⏳ <b>অপেক্ষা করুন চেক করা হচ্ছে……</b>", parse_mode="HTML")
-        time.sleep(3)
+        time.sleep(2)
         try: bot.delete_message(call.message.chat.id, msg.message_id)
         except: pass
 
@@ -458,6 +531,7 @@ def callback_handler(call):
             bot.answer_callback_query(call.id, f"❌ আপনার পর্যাপ্ত ব্যালেন্স নেই! মিনিমাম উইথড্র ৳{data.get('min_withdraw', 50.0)}", show_alert=True)
             return
 
+        bot.answer_callback_query(call.id)
         uid = str(user_id)
         data["users"][uid]["temp_data"] = {"withdraw_method": method}
         data["users"][uid]["state"] = "enter_withdraw_acc"
@@ -465,96 +539,7 @@ def callback_handler(call):
 
         bot.send_message(call.message.chat.id, f"📲 <b>আপনার {method} নম্বর/এড্রেস দিন:</b>", parse_mode="HTML")
 
-    # ==================== ADMIN INLINE CALLBACKS ====================
-    elif call.data.startswith("adm_") and int(user_id) == ADMIN_ID:
-        act = call.data.replace("adm_", "")
-
-        if act == "close":
-            try: bot.delete_message(call.message.chat.id, call.message.message_id)
-            except: pass
-
-        elif act == "set_channel":
-            update_user(user_id, "state", "admin_set_channel")
-            bot.send_message(call.message.chat.id, "চ্যানেল ইউজারনেম সেন্ড করুন (যেমন: `@mychannel`):")
-
-        elif act == "set_ref_bonus":
-            update_user(user_id, "state", "admin_set_ref_bonus")
-            bot.send_message(call.message.chat.id, "নতুন রেফার বোনাস অ্যামাউন্ট লিখুন:")
-
-        elif act == "set_min_withdraw":
-            update_user(user_id, "state", "admin_set_min_withdraw")
-            bot.send_message(call.message.chat.id, "নতুন মিনিমাম উইথড্র অ্যামাউন্ট লিখুন:")
-
-        elif act == "set_pass":
-            update_user(user_id, "state", "admin_set_pass")
-            bot.send_message(call.message.chat.id, "নতুন জিমেইলের জন্য ফিক্সড পাসওয়ার্ড লিখুন:")
-
-        elif act == "add_btn":
-            update_user(user_id, "state", "admin_add_custom_btn")
-            bot.send_message(call.message.chat.id, "নতুন বাটনের নাম লিখুন:")
-
-        elif act == "del_btn":
-            custom_btns = data.get("custom_buttons", [])
-            if not custom_btns:
-                bot.answer_callback_query(call.id, "❌ কোনো ডিলিট করার মতো কাস্টম বাটন নেই!", show_alert=True)
-            else:
-                markup = InlineKeyboardMarkup(row_width=1)
-                for btn in custom_btns:
-                    markup.add(ibtn(f"🗑️ Delete: {btn}", callback_data=f"del_cbtn_{btn}", style="danger"))
-                bot.send_message(call.message.chat.id, "🗑️ <b>যে বাটনটি মুছে ফেলতে চান তাতে চাপ দিন:</b>", parse_mode="HTML", reply_markup=markup)
-
-        elif act == "add_bal":
-            update_user(user_id, "state", "admin_add_bal")
-            bot.send_message(call.message.chat.id, "লিখুন: `USER_ID AMOUNT`", parse_mode="Markdown")
-
-        elif act == "cut_bal":
-            update_user(user_id, "state", "admin_cut_bal")
-            bot.send_message(call.message.chat.id, "লিখুন: `USER_ID AMOUNT`", parse_mode="Markdown")
-
-        elif act == "ban":
-            update_user(user_id, "state", "admin_ban_user")
-            bot.send_message(call.message.chat.id, "Ban করার জন্য USER_ID লিখুন:")
-
-        elif act == "unban":
-            update_user(user_id, "state", "admin_unban_user")
-            bot.send_message(call.message.chat.id, "Unban করার জন্য USER_ID লিখুন:")
-
-        elif act == "set_prices":
-            update_user(user_id, "state", "admin_set_prices")
-            bot.send_message(call.message.chat.id, "লিখুন: `NEW_PRICE OLD_PRICE USED_PRICE`", parse_mode="Markdown")
-
-        elif act == "search":
-            update_user(user_id, "state", "admin_search_user")
-            bot.send_message(call.message.chat.id, "ইউজার তথ্য দেখতে USER_ID লিখুন:")
-
-        elif act == "broadcast":
-            update_user(user_id, "state", "admin_broadcast")
-            bot.send_message(call.message.chat.id, "ব্রডকাস্ট মেসেজটি লিখুন:")
-
-        elif act == "maint":
-            data["maintenance_mode"] = not data["maintenance_mode"]
-            save_db(data)
-            st = "চালু (ON)" if data["maintenance_mode"] else "বন্ধ (OFF)"
-            bot.send_message(call.message.chat.id, f"🔴 মেইনটেন্যান্স মোড বর্তমানে: {st}")
-
-        elif act == "stats":
-            msg = (f"📊 <b>Bot Overall Statistics</b>\n\n"
-                   f"👥 Total Users: {len(data['users'])}\n"
-                   f"📩 Pending New Mails: {len(data['pending_new_mails'])}\n"
-                   f"👴 Pending Old Mails: {len(data['pending_old_mails'])}\n"
-                   f"♻️ Pending Used Mails: {len(data['pending_used_mails'])}\n"
-                   f"💸 Pending Withdraws: {len(data['pending_withdraws'])}\n"
-                   f"📧 Used Emails Saved in DB: {len(data['used_emails_database'])}")
-            bot.send_message(call.message.chat.id, msg, parse_mode="HTML")
-
-        elif act == "export":
-            with open(DATA_FILE, "rb") as f:
-                bot.send_document(call.message.chat.id, f)
-
-        elif act in ["p_new", "p_old", "p_used", "p_with"]:
-            bot.send_message(call.message.chat.id, f"✅ পেন্ডিং তালিকা থেকে রিভিউ করুন (লাইভ নোটিফিকেশন থেকে এপ্রুভ বা রিজেক্ট করুন)।")
-
-    elif call.data.startswith("del_cbtn_") and int(user_id) == ADMIN_ID:
+    elif call.data.startswith("del_cbtn_") and str(user_id) == str(ADMIN_ID):
         btn_name = call.data.replace("del_cbtn_", "")
         if btn_name in data.get("custom_buttons", []):
             data["custom_buttons"].remove(btn_name)
@@ -564,9 +549,9 @@ def callback_handler(call):
             except: pass
 
     elif call.data.startswith("appr_") or call.data.startswith("rej_"):
-        if int(user_id) != ADMIN_ID:
-            return
+        if str(user_id) != str(ADMIN_ID): return
         
+        bot.answer_callback_query(call.id)
         action, mail_type, req_key = call.data.split("_", 2)
         target_dict = None
         if mail_type == "new": target_dict = data["pending_new_mails"]
@@ -607,7 +592,8 @@ def callback_handler(call):
                 except: pass
 
     elif call.data.startswith("wappr_") or call.data.startswith("wrej_"):
-        if int(user_id) != ADMIN_ID: return
+        if str(user_id) != str(ADMIN_ID): return
+        bot.answer_callback_query(call.id)
         action, w_key = call.data.split("_", 1)
         
         if w_key in data["pending_withdraws"]:
@@ -648,7 +634,7 @@ def handle_text_messages(message):
         developer_cmd(message)
         return
 
-    if data.get("maintenance_mode") and int(user_id) != ADMIN_ID:
+    if data.get("maintenance_mode") and str(user_id) != str(ADMIN_ID):
         bot.send_message(message.chat.id, "🔴 <b>বট বর্তমানে মেইনটেন্যান্স মোডে আছে।</b>", parse_mode="HTML")
         return
 
@@ -662,12 +648,122 @@ def handle_text_messages(message):
         return
 
     user = get_user(user_id, message.from_user.first_name, message.from_user.username or "")
-    state = user.get("state")
+
+    # ==================== MAIN MENU BUTTON COMMANDS (RESETS STATE) ====================
+    all_main_menu_btns = [
+        "💰 মোট ব্যালেন্স", "💰 𝑩𝒂𝒍𝒂𝒏𝒄𝒆",
+        "👥 রেফার", "👥 𝑩𝒆𝒇𝒆𝒓𝒓𝒂𝒍",
+        "📧 নতুন জিমেইল সেল", "📧 𝑵𝒆𝒘 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆",
+        "👴 পুরাতন জিমেইল সেল", "👴 𝑶𝒍𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆",
+        "♻️ ইউজ জিমেইল সেল", "♻️ 𝑼𝒔𝒆𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆",
+        "📥 উইথড্র করুন", "📥 𝑾𝒊𝒕𝒉𝒅𝒓𝒂𝒘",
+        "🏆 লিডারবোর্ড", "🏆 𝑳𝒆𝒂𝒅𝒆𝒓𝒃𝒐𝒂𝒓𝒅",
+        "⚙️ Admin Panel"
+    ] + data.get("custom_buttons", [])
+
+    # ইউজার কোনো বাটনে চাপ দিলে অটোমেটিক তার আগের State মুছে যাবে
+    if text in all_main_menu_btns:
+        update_user(user_id, "state", None)
+
+        if text in ["💰 মোট ব্যালেন্স", "💰 𝑩𝒂𝒍𝒂𝒏𝒄𝒆"]:
+            msg = (f"👤 <b>Account Details Dashboard</b>\n\n"
+                   f"💰 মোট ব্যালেন্স: <b>৳{user['balance']:.2f}</b>\n"
+                   f"🎁 মোট রেফার বোনাস: <b>৳{user['total_ref_bonus']:.2f}</b>\n"
+                   f"📤 মোট উইথড্র: <b>৳{user['total_withdraw']:.2f}</b>\n"
+                   f"⏳ পেন্ডিং উইথড্র: <b>৳{user['pending_withdraw']:.2f}</b>\n\n"
+                   f"✅ সাকসেস মেইল: <b>{user['success_mails']} টি</b>\n"
+                   f"⏳ পেন্ডিং মেইল: <b>{user['pending_mails']} টি</b>")
+            bot.send_message(message.chat.id, msg, parse_mode="HTML")
+            return
+
+        elif text in ["👥 রেফার", "👥 𝑩𝒆𝒇𝒆𝒓𝒓𝒂𝒍"]:
+            bot_uname = bot.get_me().username
+            ref_link = f"https://t.me/{bot_uname}?start={user_id}"
+            
+            msg = (f"👥 <b>Refer & Earn Program</b>\n\n"
+                   f"🔗 <b>আপনার রেফারেল লিংক:</b>\n<code>{ref_link}</code>\n\n"
+                   f"📜 <b>রেফারেল রুলস:</b>\n"
+                   f"১. আপনার লিংক থেকে জয়েন করে ভেরিফাই করলে পাবেন <b>৳{data.get('ref_bonus_verify', 0.40)}</b>!\n"
+                   f"২. আপনার রেফার করা ব্যক্তি <b>৩ টি জিমেইল সেল</b> দিলে সে আপনার Active Refer সদস্য হবে!\n\n"
+                   f"📊 <b>মোট রেফার করা সদস্য:</b> {len(user['referral_list'])} জন")
+            
+            markup = InlineKeyboardMarkup()
+            markup.add(ibtn("📋 আপনার রেফারেল লিস্ট দেখুন", callback_data="show_ref_list", style="primary"))
+            bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
+            return
+
+        elif text in ["📧 নতুন জিমেইল সেল", "📧 𝑵𝒆𝒘 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"]:
+            fn, ln, email = generate_gmail_details()
+            passw = data.get("new_mail_password", "NRGmailShopPass@2026")
+            
+            uid = str(user_id)
+            data["users"][uid]["active_new_mail_session"] = {
+                "first_name": fn,
+                "last_name": ln,
+                "email": email,
+                "password": passw,
+                "start_time": time.time()
+            }
+            save_db(data)
+
+            msg = (f"📧 <b>নতুন জিমেইল তৈরির তথ্য:</b>\n\n"
+                   f"👤 First Name: <code>{fn}</code>\n"
+                   f"👤 Last Name: <code>{ln}</code>\n"
+                   f"✉️ Gmail Address: <code>{email}</code>\n"
+                   f"🔑 Password: <code>{passw}</code>\n"
+                   f"💰 Rate: <b>৳{data.get('new_mail_price', 10.0)}</b>\n\n"
+                   f"ℹ️ <i>লেখাগুলোর ওপর ক্লিক করে কপি করুন। অ্যাকাউন্ট সম্পূর্ণ তৈরি করা শেষ হলে নিচের Subject বাটনে চাপ দিন।</i>")
+            
+            markup = InlineKeyboardMarkup()
+            markup.add(ibtn("✅ Subject / জিমেইল খোলা শেষ", callback_data="submit_new_mail_check", style="success"))
+            bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
+            return
+
+        elif text in ["👴 পুরাতন জিমেইল সেল", "👴 𝑶𝒍𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"]:
+            update_user(user_id, "state", "enter_old_mail_address")
+            update_user(user_id, "temp_data", {"type": "old"})
+            bot.send_message(message.chat.id, "👴 <b>আপনার পুরাতন জিমেইল এড্রেসটি এখানে সাবমিট করুন 👇</b>", parse_mode="HTML")
+            return
+
+        elif text in ["♻️ ইউজ জিমেইল সেল", "♻️ 𝑼𝒔𝒆𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"]:
+            update_user(user_id, "state", "enter_old_mail_address")
+            update_user(user_id, "temp_data", {"type": "used"})
+            bot.send_message(message.chat.id, "♻️ <b>আপনার ইউজড (Used) জিমেইল এড্রেসটি এখানে সাবমিট করুন 👇</b>", parse_mode="HTML")
+            return
+
+        elif text in ["📥 উইথড্র করুন", "📥 𝑾𝒊𝒕𝒉𝒅𝒓𝒂𝒘"]:
+            min_w = data.get("min_withdraw", 50.0)
+            msg = f"📥 <b>উইথড্র সিস্টেম</b>\n\nবর্তমান মিনিমাম উইথড্র: <b>৳{min_w:.2f}</b>\nনিচে থেকে আপনার পেমেন্ট মেথড সিলেক্ট করুন:"
+            
+            markup = InlineKeyboardMarkup(row_width=2)
+            btns = []
+            for m, enabled in data.get("withdraw_methods", {}).items():
+                if enabled: btns.append(ibtn(m, callback_data=f"with_select_{m}", style="primary"))
+            markup.add(*btns)
+            bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
+            return
+
+        elif text in ["🏆 লিডারবোর্ড", "🏆 𝑳𝒆𝒂𝒅𝒆𝒓𝒃𝒐𝒂𝒓𝒅"]:
+            msg = "🏆 <b>24 Hours Top Leaderboard Rewards</b> 🏆\n\n"
+            msg += "🥇 টপ ১০ জনের জন্য বিশেষ পুরস্কার বোনাস:\n"
+            msg += "• ১০টির বেশি সেল/রেফার: <b>৳৫০ বোনাস</b>\n"
+            msg += "• ৭ - ১০ নম্বর পজিশন: <b>৳২০ বোনাস</b>\n"
+            msg += "• ৪ - ৭ নম্বর পজিশন: <b>৳১০ বোনাস</b>\n"
+            msg += "• ২ - ৪ নম্বর পজিশন: <b>৳২ বোনাস</b>\n\n"
+            msg += "📊 <i>প্রতি ২৪ ঘন্টা পর অটোমেটিক বোনাস প্রদান ও রিসেট করা হয়।</i>"
+            bot.send_message(message.chat.id, msg, parse_mode="HTML")
+            return
+
+        elif text == "⚙️ Admin Panel" and str(user_id) == str(ADMIN_ID):
+            bot.send_message(message.chat.id, "⚙️ <b>Admin Control Panel:</b>", parse_mode="HTML", reply_markup=get_admin_inline_menu())
+            return
 
     # ==================== USER STATE FLOWS ====================
+    state = user.get("state")
+
     if state == "enter_old_mail_address":
         if "@gmail.com" not in text:
-            bot.send_message(message.chat.id, "❌ সঠিক জিমেইল এড্রেস লিখুন:")
+            bot.send_message(message.chat.id, "❌ সঠিক জিমেইল এড্রেস লিখুন (যেমন: test@gmail.com):")
             return
         
         if text in data.get("used_emails_database", []):
@@ -772,7 +868,7 @@ def handle_text_messages(message):
             }
             save_db(data)
 
-            bot.send_message(message.chat.id, "🕊️ <b>আপনার উইথড্র রিকোয়েস্ট সফলভাবে জমা হয়েছে। ধৈর্য ধরে অপেক্ষা করুন, খুব দ্রুত পেমেন্ট কমপ্লিট করা হবে!</b>", parse_mode="HTML", reply_markup=get_main_menu(user_id))
+            bot.send_message(message.chat.id, "🕊️ <b>আপনার উইথড্র রিকোয়েস্ট সফলভাবে জমা হয়েছে। ধৈর্য ধরে অপেক্ষা করুন!</b>", parse_mode="HTML", reply_markup=get_main_menu(user_id))
 
             admin_msg = (f"💸 <b>NEW WITHDRAWAL REQUEST!</b>\n\n"
                          f"👤 Name: {user['name']}\n"
@@ -781,8 +877,6 @@ def handle_text_messages(message):
                          f"💳 Method: {method}\n"
                          f"📱 Account: <code>{acc_num}</code>\n"
                          f"💰 Amount: ৳<b>{amt:.2f}</b>\n"
-                         f"📊 Total Sales: {user['success_mails']}\n"
-                         f"👥 Total Ref: {len(user['referral_list'])}\n"
                          f"⏰ Time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
             
             markup = InlineKeyboardMarkup(row_width=2)
@@ -797,7 +891,7 @@ def handle_text_messages(message):
             return
 
     # ==================== ADMIN STATE FLOWS ====================
-    if int(user_id) == ADMIN_ID and state:
+    if str(user_id) == str(ADMIN_ID) and state:
         if state == "admin_set_channel":
             if text.startswith("@"):
                 data["force_channels"].append(text)
@@ -920,112 +1014,10 @@ def handle_text_messages(message):
             update_user(user_id, "state", None)
             return
 
-    # ==================== MAIN MENU BUTTON COMMANDS ====================
-    if text in ["💰 মোট ব্যালেন্স", "💰 𝑩𝒂𝒍𝒂𝒏𝒄𝒆"]:
-        msg = (f"👤 <b>Account Details Dashboard</b>\n\n"
-               f"💰 মোট ব্যালেন্স: <b>৳{user['balance']:.2f}</b>\n"
-               f"🎁 মোট রেফার বোনাস: <b>৳{user['total_ref_bonus']:.2f}</b>\n"
-               f"📤 মোট উইথড্র: <b>৳{user['total_withdraw']:.2f}</b>\n"
-               f"⏳ পেন্ডিং উইথড্র: <b>৳{user['pending_withdraw']:.2f}</b>\n\n"
-               f"✅ সাকসেস মেইল: <b>{user['success_mails']} টি</b>\n"
-               f"⏳ পেন্ডিং মেইল: <b>{user['pending_mails']} টি</b>")
-        bot.send_message(message.chat.id, msg, parse_mode="HTML")
-
-    elif text in ["👥 রেফার", "👥 𝑩𝒆𝒇𝒆𝒓𝒓𝒂𝒍"]:
-        bot_uname = bot.get_me().username
-        ref_link = f"https://t.me/{bot_uname}?start={user_id}"
-        
-        msg = (f"👥 <b>Refer & Earn Program</b>\n\n"
-               f"🔗 <b>আপনার রেফারেল লিংক:</b>\n<code>{ref_link}</code>\n\n"
-               f"📜 <b>রেফারেল রুলস:</b>\n"
-               f"১. আপনার লিংক থেকে জয়েন করে ভেরিফাই করলে পাবেন <b>৳{data.get('ref_bonus_verify', 0.40)}</b>!\n"
-               f"২. আপনার রেফার করা ব্যক্তি <b>৩ টি জিমেইল সেল</b> দিলে সে আপনার Active Refer সদস্য হবে!\n\n"
-               f"📊 <b>মোট রেফার করা সদস্য:</b> {len(user['referral_list'])} জন")
-        
-        markup = InlineKeyboardMarkup()
-        markup.add(ibtn("📋 আপনার রেফারেল লিস্ট দেখুন", callback_data="show_ref_list", style="primary"))
-        bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
-
-    elif text == "show_ref_list" or (message.text == "📋 আপনার রেফারেল লিস্ট দেখুন"):
-        refs = user.get("referral_list", [])
-        if not refs:
-            bot.send_message(message.chat.id, "❌ আপনি এখনো কাউকে রেফার করেননি।")
-        else:
-            msg = "📋 <b>আপনার রেফারেল তালিকা:</b>\n\n"
-            for idx, r in enumerate(refs, 1):
-                status = "🟢 Active" if r.get("active") else "🔴 Unactive"
-                msg += f"{idx}. {r['name']} (@{r['username']}) - Status: {status}\n"
-            bot.send_message(message.chat.id, msg, parse_mode="HTML")
-
-    elif text in ["📧 নতুন জিমেইল সেল", "📧 𝑵𝒆𝒘 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"]:
-        fn, ln, email = generate_gmail_details()
-        passw = data.get("new_mail_password", "NRGmailShopPass@2026")
-        
-        uid = str(user_id)
-        data["users"][uid]["active_new_mail_session"] = {
-            "first_name": fn,
-            "last_name": ln,
-            "email": email,
-            "password": passw,
-            "start_time": time.time()
-        }
-        save_db(data)
-
-        msg = (f"📧 <b>নতুন জিমেইল তৈরির তথ্য:</b>\n\n"
-               f"👤 First Name: <code>{fn}</code>\n"
-               f"👤 Last Name: <code>{ln}</code>\n"
-               f"✉️ Gmail Address: <code>{email}</code>\n"
-               f"🔑 Password: <code>{passw}</code>\n"
-               f"💰 Rate: <b>৳{data.get('new_mail_price', 10.0)}</b>\n\n"
-               f"ℹ️ <i>লেখাগুলোর ওপর ক্লিক করে কপি করুন। অ্যাকাউন্ট সম্পূর্ণ তৈরি করা শেষ হলে নিচের Subject বাটনে চাপ দিন।</i>")
-        
-        markup = InlineKeyboardMarkup()
-        markup.add(ibtn("✅ Subject / জিমেইল খোলা শেষ", callback_data="submit_new_mail_check", style="success"))
-        bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
-
-    elif text in ["👴 পুরাতন জিমেইল সেল", "👴 𝑶𝒍𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"]:
-        update_user(user_id, "state", "enter_old_mail_address")
-        update_user(user_id, "temp_data", {"type": "old"})
-        bot.send_message(message.chat.id, "👴 <b>আপনার পুরাতন জিমেইল এড্রেসটি এখানে সাবমিট করুন 👇</b>", parse_mode="HTML")
-
-    elif text in ["♻️ ইউজ জিমেইল সেল", "♻️ 𝑼𝒔𝒆𝒅 𝑮𝒎𝒂𝒊𝒍 𝑺𝒂𝒍𝒆"]:
-        update_user(user_id, "state", "enter_old_mail_address")
-        update_user(user_id, "temp_data", {"type": "used"})
-        bot.send_message(message.chat.id, "♻️ <b>আপনার ইউজড (Used) জিমেইল এড্রেসটি এখানে সাবমিট করুন 👇</b>", parse_mode="HTML")
-
-    elif text in ["📥 উইথড্র করুন", "📥 𝑾𝒊𝒕𝒉𝒅𝒓𝒂𝒘"]:
-        min_w = data.get("min_withdraw", 50.0)
-        msg = f"📥 <b>উইথড্র সিস্টেম</b>\n\nবর্তমান মিনিমাম উইথড্র: <b>৳{min_w:.2f}</b>\nনিচে থেকে আপনার পেমেন্ট মেথড সিলেক্ট করুন:"
-        
-        markup = InlineKeyboardMarkup(row_width=2)
-        btns = []
-        for m, enabled in data.get("withdraw_methods", {}).items():
-            if enabled: btns.append(ibtn(m, callback_data=f"with_select_{m}", style="primary"))
-        markup.add(*btns)
-        bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
-
-    elif text in ["🏆 লিডারবোর্ড", "🏆 𝑳𝒆𝒂𝒅𝒆𝒓𝒃𝒐𝒂𝒓𝒅"]:
-        msg = "🏆 <b>24 Hours Top Leaderboard Rewards</b> 🏆\n\n"
-        msg += "🥇 টপ ১০ জনের জন্য বিশেষ পুরস্কার বোনাস:\n"
-        msg += "• ১০টির বেশি সেল/রেফার: <b>৳৫০ বোনাস</b>\n"
-        msg += "• ৭ - ১০ নম্বর পজিশন: <b>৳২০ বোনাস</b>\n"
-        msg += "• ৪ - ৭ নম্বর পজিশন: <b>৳১০ বোনাস</b>\n"
-        msg += "• ২ - ৪ নম্বর পজিশন: <b>৳২ বোনাস</b>\n\n"
-        msg += "📊 <i>প্রতি ২৪ ঘন্টা পর অটোমেটিক বোনাস প্রদান ও রিসেট করা হয়।</i>"
-        bot.send_message(message.chat.id, msg, parse_mode="HTML")
-
-    # ==================== ADMIN PANEL COMMANDS ====================
-    elif text == "⚙️ Admin Panel" and int(user_id) == ADMIN_ID:
-        bot.send_message(message.chat.id, "⚙️ <b>Admin Control Panel:</b>", parse_mode="HTML", reply_markup=get_admin_inline_menu())
-
-    elif text == "🔙 Main Menu":
-        update_user(user_id, "state", None)
-        bot.send_message(message.chat.id, "Main Menu", reply_markup=get_main_menu(user_id))
-
 # ============================================
 # --- BOT STARTUP ---
 # ============================================
 if __name__ == "__main__":
-    keep_alive()  # Render Web Server Activator
+    keep_alive()
     print(f"🚀 {BOT_NAME} Started Successfully...")
     bot.infinity_polling()
